@@ -1,0 +1,19 @@
+{
+  "name": "first_project",
+  "version": "1.0.0",
+  "description": "beginner",
+  "main": "index.js",
+  "scripts": {
+    "start": "node src/app.js",
+    "dev": "nodemon src/app.js"
+  },
+  "keywords": [
+    "jrm"
+  ],
+  "author": "jyotiranjan",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^5.1.0",
+    "nodemon": "^3.1.10"
+  }
+}
