@@ -17,7 +17,7 @@ app.post("/signup", async (req, res) => {
     await user.save();
     res.send("User added Successfully!");
   } catch (err) {
-    res.status(400).send("Error!");
+    res.status(400).send("Error!" + err.message);
   }
   // it use to add new user with the help of json()
 
@@ -49,7 +49,7 @@ app.get("/get", async (req, res) => {
       res.send(users);
     }
   } catch (err) {
-    res.status(401).send("Something went Wrong!");
+    res.status(401).send("Something went Wrong!", err.message);
   }
   // try {
   //   const users = await User.findOne({ firstName: userName });
@@ -69,10 +69,33 @@ app.get("/feed", async (req, res) => {
     const users = await User.find({});
     res.send(users);
   } catch (err) {
-    res.status(401).send("Something went Wrong!");
+    res.status(401).send("Something went Wrong!", err.message);
+  }
+});
+app.delete("/delete", async (req, res) => {
+  const userId = req.body._id;
+  try {
+    const users = await User.findByIdAndDelete({ _id: userId });
+    res.send("User Deleted Successfully");
+  } catch (err) {
+    res.status(401).send("Something went Wrong !" + err.message);
   }
 });
 
+app.patch("/user", async (req, res) => {
+  const userId = req.body._id;
+  const data = req.body;
+  try {
+    const users = await User.findByIdAndUpdate({ _id: userId }, data, {
+      returnDocument: "after",
+      runValidators:true,
+    });
+    console.log(users);
+    res.send("User Updated Successfully");
+  } catch (err) {
+    res.status(401).send("Something went Wrong !..." + err.message);
+  }
+});
 connectDB()
   .then(() => {
     console.log("DB Connected Successfully!");
