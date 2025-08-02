@@ -1,23 +1,34 @@
 const express = require("express");
-
 const app = express();
-
 const connectDB = require("./config/Database");
-
 const User = require("./models/user");
+const { validateSignUpData } = require("./util/Validation");
+const bcrypt = require("bcrypt");
+const cookieParser = require("cookie-parser");
+const jwt = require("jsonwebtoken");
+const { userAuth } = require("./middlewares/auth");
 
 app.use(express.json());
-
+app.use(cookieParser());
 app.post("/signup", async (req, res) => {
   // console.log(req.body);
   // const userEmail = newuserMail(lastName:req.body);
-  const user = new User(req.body);
 
   try {
+    validateSignUpData(req);
+    const { firstName, lastName, emailId, password } = req.body;
+    const passwordHash = await bcrypt.hash(password, 10);
+    console.log(passwordHash);
+    const user = new User({
+      firstName,
+      lastName,
+      emailId,
+      password: passwordHash,
+    });
     await user.save();
     res.send("User added Successfully!");
   } catch (err) {
-    res.status(400).send("Error!" + err.message);
+    res.status(400).send("Error! " + err.message);
   }
   // it use to add new user with the help of json()
 
@@ -38,6 +49,47 @@ app.post("/signup", async (req, res) => {
   // }
 });
 //  Get user by email
+
+app.post("/login", async (req, res) => {
+  try {
+    const { emailId, password } = req.body;
+    const user = await User.findOne({ emailId: emailId });
+    if (!user) {
+      throw new Error("Invalid Credential !");
+    }
+    // const isPasswordValid = await bcrypt.compare(password, user.password);
+
+    const isPasswordValid = await user.validatePassword(password);
+
+    if (isPasswordValid) {
+      const token = await user.getJWT();
+      console.log(token);
+
+      res.cookie("token", token, {
+        expires: new Date(Date.now() + 8 * 3600000)
+      });
+      res.send("Login Successfully");
+    } else {
+      throw new Error("Invalid Credential !");
+    }
+    // const isPasswordValid = await bcrypt.compare(
+    //   "Jyoti@166",
+    //   "$2b$10$I.evC.YwVz2ZbfWBJ7GJguPkAnBvrSIsVhz1bIr0cLmuCygi7kgtm"
+    // );
+  } catch (err) {
+    res.status(401).send("Error " + err.message);
+  }
+});
+
+app.get("/profile", userAuth, async (req, res) => {
+  try {
+    const user = req.user;
+    // console.log(user);
+    res.send(user);
+  } catch (error) {
+    res.status(400).send("Error ! : " + err.message);
+  }
+});
 app.get("/get", async (req, res) => {
   const userName = req.body.firstName;
   const userId = req.body._id;
@@ -82,13 +134,28 @@ app.delete("/delete", async (req, res) => {
   }
 });
 
-app.patch("/user", async (req, res) => {
-  const userId = req.body._id;
+app.patch("/user/:userId", async (req, res) => {
+  // const userId = req.body._id;
+  const userId = req.params?.userId;
   const data = req.body;
+
   try {
-    const users = await User.findByIdAndUpdate({ _id: userId }, data, {
+    const ALLOWED_UPDATES = ["photoUrl", "about", "gender", "age", "skills"];
+
+    const isUpdateAllowed = Object.keys(data).every((k) =>
+      ALLOWED_UPDATES.includes(k)
+    );
+
+    if (!isUpdateAllowed) {
+      throw new Error("Update not available");
+    }
+
+    if (data?.skills.length > 10) {
+      throw new Error("Skills Length can not be more than 10 !");
+    }
+    const users = await User.findByIdAndUpdate(userId, data, {
       returnDocument: "after",
-      runValidators:true,
+      runValidators: true,
     });
     console.log(users);
     res.send("User Updated Successfully");
@@ -96,6 +163,17 @@ app.patch("/user", async (req, res) => {
     res.status(401).send("Something went Wrong !..." + err.message);
   }
 });
+
+app.post("/sendConnectionRequest", userAuth, async(req, res)=>{
+  try{
+    const user= req.user;
+    console.log("We will Get Connection request");
+    res.send(user.firstName + " Sent The Connection Req Successfully");
+  }catch(err){
+    res.status(400).send("Error :" + err.message);
+  }
+})
+
 connectDB()
   .then(() => {
     console.log("DB Connected Successfully!");
