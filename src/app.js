@@ -1,178 +1,131 @@
 const express = require("express");
 const app = express();
 const connectDB = require("./config/Database");
-const User = require("./models/user");
-const { validateSignUpData } = require("./util/Validation");
-const bcrypt = require("bcrypt");
+// const User = require("./models/user");
+// const { validateSignUpData } = require("./util/Validation");
+// const bcrypt = require("bcrypt");
 const cookieParser = require("cookie-parser");
 const jwt = require("jsonwebtoken");
-const { userAuth } = require("./middlewares/auth");
+// const { userAuth } = require("./middlewares/auth");
 
 app.use(express.json());
 app.use(cookieParser());
-app.post("/signup", async (req, res) => {
-  // console.log(req.body);
-  // const userEmail = newuserMail(lastName:req.body);
 
-  try {
-    validateSignUpData(req);
-    const { firstName, lastName, emailId, password } = req.body;
-    const passwordHash = await bcrypt.hash(password, 10);
-    console.log(passwordHash);
-    const user = new User({
-      firstName,
-      lastName,
-      emailId,
-      password: passwordHash,
-    });
-    await user.save();
-    res.send("User added Successfully!");
-  } catch (err) {
-    res.status(400).send("Error! " + err.message);
-  }
-  // it use to add new user with the help of json()
+const authRouter = require("./routes/auth");
+const profileRouter = require("./routes/profile");
+const requestRouter = require("./routes/request");
 
-  //  it use for add user in writing without json()
+app.use("/", authRouter);
+app.use("/", profileRouter);
+app.use("/", requestRouter);
 
-  // const user = new User({
-  //   firstName: "Sachin",
-  //   lastName: "Tendulkar",
-  //   emailId: "sachin10@gmail.com",
-  //   password: "sachin@10",
-  // });
-
-  // try {
-  // await user.save();
-  // res.send("User added Successfully!");
-  // } catch(err){
-  //   res.status(400).send("Error!")
-  // }
-});
 //  Get user by email
 
-app.post("/login", async (req, res) => {
-  try {
-    const { emailId, password } = req.body;
-    const user = await User.findOne({ emailId: emailId });
-    if (!user) {
-      throw new Error("Invalid Credential !");
-    }
-    // const isPasswordValid = await bcrypt.compare(password, user.password);
+// app.post("/login", async (req, res) => {
+//   try {
+//     const { emailId, password } = req.body;
+//     const user = await User.findOne({ emailId: emailId });
+//     if (!user) {
+//       throw new Error("Invalid Credential !");
+//     }
+//     // const isPasswordValid = await bcrypt.compare(password, user.password);
 
-    const isPasswordValid = await user.validatePassword(password);
+//     const isPasswordValid = await user.validatePassword(password);
 
-    if (isPasswordValid) {
-      const token = await user.getJWT();
-      console.log(token);
+//     if (isPasswordValid) {
+//       const token = await user.getJWT();
+//       console.log(token);
 
-      res.cookie("token", token, {
-        expires: new Date(Date.now() + 8 * 3600000)
-      });
-      res.send("Login Successfully");
-    } else {
-      throw new Error("Invalid Credential !");
-    }
-    // const isPasswordValid = await bcrypt.compare(
-    //   "Jyoti@166",
-    //   "$2b$10$I.evC.YwVz2ZbfWBJ7GJguPkAnBvrSIsVhz1bIr0cLmuCygi7kgtm"
-    // );
-  } catch (err) {
-    res.status(401).send("Error " + err.message);
-  }
-});
+//       res.cookie("token", token, {
+//         expires: new Date(Date.now() + 8 * 3600000)
+//       });
+//       res.send("Login Successfully");
+//     } else {
+//       throw new Error("Invalid Credential !");
+//     }
+//     // const isPasswordValid = await bcrypt.compare(
+//     //   "Jyoti@166",
+//     //   "$2b$10$I.evC.YwVz2ZbfWBJ7GJguPkAnBvrSIsVhz1bIr0cLmuCygi7kgtm"
+//     // );
+//   } catch (err) {
+//     res.status(401).send("Error " + err.message);
+//   }
+// });
 
-app.get("/profile", userAuth, async (req, res) => {
-  try {
-    const user = req.user;
-    // console.log(user);
-    res.send(user);
-  } catch (error) {
-    res.status(400).send("Error ! : " + err.message);
-  }
-});
-app.get("/get", async (req, res) => {
-  const userName = req.body.firstName;
-  const userId = req.body._id;
-  try {
-    const users = await User.findOne({ _id: userId });
-    if (!users) {
-      res.status(401).send("User not Found!");
-    } else {
-      res.send(users);
-    }
-  } catch (err) {
-    res.status(401).send("Something went Wrong!", err.message);
-  }
-  // try {
-  //   const users = await User.findOne({ firstName: userName });
-  //   if (users.length === 0) {
-  //     res.status(404).send("User not Found!");
-  //   }
-  //   res.send(users);
-  // } catch (err) {
-  //   res.status(401).send("Something went Wrong ! please check it...");
-  // }
-});
+// app.get("/get", async (req, res) => {
+//   const userName = req.body.firstName;
+//   const userId = req.body._id;
+//   try {
+//     const users = await User.findOne({ _id: userId });
+//     if (!users) {
+//       res.status(401).send("User not Found!");
+//     } else {
+//       res.send(users);
+//     }
+//   } catch (err) {
+//     res.status(401).send("Something went Wrong!", err.message);
+//   }
+//   // try {
+//   //   const users = await User.findOne({ firstName: userName });
+//   //   if (users.length === 0) {
+//   //     res.status(404).send("User not Found!");
+//   //   }
+//   //   res.send(users);
+//   // } catch (err) {
+//   //   res.status(401).send("Something went Wrong ! please check it...");
+//   // }
+// });
 
 // Feed API - Get / Feed - get all the userdata from the database
 
-app.get("/feed", async (req, res) => {
-  try {
-    const users = await User.find({});
-    res.send(users);
-  } catch (err) {
-    res.status(401).send("Something went Wrong!", err.message);
-  }
-});
-app.delete("/delete", async (req, res) => {
-  const userId = req.body._id;
-  try {
-    const users = await User.findByIdAndDelete({ _id: userId });
-    res.send("User Deleted Successfully");
-  } catch (err) {
-    res.status(401).send("Something went Wrong !" + err.message);
-  }
-});
+// app.get("/feed", async (req, res) => {
+//   try {
+//     const users = await User.find({});
+//     res.send(users);
+//   } catch (err) {
+//     res.status(401).send("Something went Wrong!", err.message);
+//   }
+// });
 
-app.patch("/user/:userId", async (req, res) => {
-  // const userId = req.body._id;
-  const userId = req.params?.userId;
-  const data = req.body;
+// app.delete("/delete", async (req, res) => {
+//   const userId = req.body._id;
+//   try {
+//     const users = await User.findByIdAndDelete({ _id: userId });
+//     res.send("User Deleted Successfully");
+//   } catch (err) {
+//     res.status(401).send("Something went Wrong !" + err.message);
+//   }
+// });
 
-  try {
-    const ALLOWED_UPDATES = ["photoUrl", "about", "gender", "age", "skills"];
+// app.patch("/user/:userId", async (req, res) => {
+//   // const userId = req.body._id;
+//   const userId = req.params?.userId;
+//   const data = req.body;
 
-    const isUpdateAllowed = Object.keys(data).every((k) =>
-      ALLOWED_UPDATES.includes(k)
-    );
+//   try {
+//     const ALLOWED_UPDATES = ["photoUrl", "about", "gender", "age", "skills"];
 
-    if (!isUpdateAllowed) {
-      throw new Error("Update not available");
-    }
+//     const isUpdateAllowed = Object.keys(data).every((k) =>
+//       ALLOWED_UPDATES.includes(k)
+//     );
 
-    if (data?.skills.length > 10) {
-      throw new Error("Skills Length can not be more than 10 !");
-    }
-    const users = await User.findByIdAndUpdate(userId, data, {
-      returnDocument: "after",
-      runValidators: true,
-    });
-    console.log(users);
-    res.send("User Updated Successfully");
-  } catch (err) {
-    res.status(401).send("Something went Wrong !..." + err.message);
-  }
-});
+//     if (!isUpdateAllowed) {
+//       throw new Error("Update not available");
+//     }
 
-app.post("/sendConnectionRequest", userAuth, async(req, res)=>{
-  try{
-    const user= req.user;
-    console.log("We will Get Connection request");
-    res.send(user.firstName + " Sent The Connection Req Successfully");
-  }catch(err){
-    res.status(400).send("Error :" + err.message);
-  }
-})
+//     if (data?.skills.length > 10) {
+//       throw new Error("Skills Length can not be more than 10 !");
+//     }
+//     const users = await User.findByIdAndUpdate(userId, data, {
+//       returnDocument: "after",
+//       runValidators: true,
+//     });
+//     console.log(users);
+//     res.send("User Updated Successfully");
+//   } catch (err) {
+//     res.status(401).send("Something went Wrong !..." + err.message);
+//   }
+// });
 
 connectDB()
   .then(() => {
